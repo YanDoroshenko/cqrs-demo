@@ -3,6 +3,9 @@ package com.github.yandoroshenko.cqrs
 import cats.effect.{ExitCode, IO, IOApp}
 import com.github.yandoroshenko.cqrs.dto.ReadDTO
 import com.github.yandoroshenko.cqrs.model.Entity
+import scala.concurrent.duration.DurationInt
+
+import scala.language.postfixOps
 
 object Main extends IOApp {
 
@@ -26,7 +29,7 @@ object Main extends IOApp {
       _ <- IO.println(s"Before insert: $res1")
       _ <- IO.println("Insert")
       _ <- IO(writeService(request))
-      _ <- IO(syncDB())
+      _ <- (IO.sleep(1 second) >> IO(syncDB())).start
       res2 <- IO(readService())
       _ <- IO.println(s"After insert: $res2")
     } yield ExitCode.Success
