@@ -6,16 +6,14 @@ import com.github.yandoroshenko.cqrs.model.Entity
 
 object Main extends IOApp {
 
-  var writeDB: List[Entity] = Nil
-  var readDB: List[ReadDTO] = Nil
+  var db: List[Entity] = Nil
 
-  var readService: () => List[ReadDTO] = () => readDB
-  var writeService: Entity => Unit = (x: Entity) => {
-    writeDB = writeDB :+ x
+  var readService: () => List[ReadDTO] = () => db.map { entity =>
+    ReadDTO(entity.requestId, entity.data, entity.data % 2 == 0)
   }
 
-  val syncDB = () => readDB = writeDB.map { entity =>
-    ReadDTO(entity.requestId, entity.data, entity.data % 2 == 0)
+  var writeService: Entity => Unit = (x: Entity) => {
+    db = db :+ x
   }
 
   override def run(args: List[String]): IO[ExitCode] = {
@@ -26,7 +24,6 @@ object Main extends IOApp {
       _ <- IO.println(s"Before insert: $res1")
       _ <- IO.println("Insert")
       _ <- IO(writeService(request))
-      _ <- IO(syncDB())
       res2 <- IO(readService())
       _ <- IO.println(s"After insert: $res2")
     } yield ExitCode.Success
