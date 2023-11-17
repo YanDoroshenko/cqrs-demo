@@ -18,4 +18,5 @@ libraryDependencies ++=
     "org.http4s" %% "http4s-ember-client" % http4sVersion ::
     "org.http4s" %% "http4s-circe" % http4sVersion ::
     "org.http4s" %% "http4s-dsl" % http4sVersion ::
+    "org.slf4j" % "slf4j-simple" % "2.0.9" ::
     Nil

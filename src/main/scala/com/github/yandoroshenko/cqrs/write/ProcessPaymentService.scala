@@ -1,4 +1,4 @@
-package com.github.yandoroshenko.cqrs.command
+package com.github.yandoroshenko.cqrs.write
 
 import cats.effect._
 import cats.effect.std.Console
@@ -14,7 +14,7 @@ import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, Produce
 
 import java.util.Properties
 
-class ProcessPaymentService[F[_]: Monad: Async: Console](topicName: String, kafkaBootstrapServers: String) {
+class ProcessPaymentService(topicName: String, kafkaBootstrapServers: String) {
   def producerRecord(orderId: OrderId): ProducerRecord[OrderId, OrderId] =
     new ProducerRecord(
       topicName,
@@ -22,25 +22,21 @@ class ProcessPaymentService[F[_]: Monad: Async: Console](topicName: String, kafk
       orderId
     )
 
-  val producerResource: Resource[F, KafkaProducer[OrderId, OrderId]] = {
+  val producerResource: Resource[IO, KafkaProducer[OrderId, OrderId]] = {
     val props = new Properties()
     props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers)
     props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, classOf[OrderIdSerializer].getName)
     props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, classOf[OrderIdSerializer].getName)
 
     Resource.make(
-      Monad[F].pure(
+      IO(
         new KafkaProducer[OrderId, OrderId](props)
       )
-    )(_ => Monad[F].unit)
+    )(p => IO(p.close()))
   }
 
-  def processPayment(orderId: OrderId): F[Unit] =
-    Console[F].println(s"Process payment - orderId: $orderId") >>
-      producerResource.use { p =>
-        Monad[F].pure(
-          p.send(producerRecord(orderId)).get()
-        ) >>
-          Monad[F].unit
-      }
+  def processPayment(orderId: OrderId): IO[Unit] =
+    producerResource.use { p =>
+      IO(p.send(producerRecord(orderId)).get()).void >> IO.println(s"Process payment - orderId: $orderId")
+    }
 }
